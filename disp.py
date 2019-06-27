@@ -1,4 +1,5 @@
 from copy import deepcopy
+import matplotlib.pyplot as plt
 import numpy as np
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
@@ -57,3 +58,14 @@ def set_color(ax, color, box=False):
     ax.title.set_color(color)
     ax.xaxis.label.set_color(color)
     ax.yaxis.label.set_color(color)
+    
+    
+def fast_fig(n_ax, ax_size, fig_w=15):
+    """Quickly make figure and axes objects from number of axes and ax size (h, w)."""
+    n_col = int(round(fig_w/ax_size[1]))
+    n_row = int(np.ceil(n_ax/n_col))
+    
+    fig_h = n_row*ax_size[0]
+    
+    fig, axs = plt.subplots(n_row, n_col, figsize=(fig_w, fig_h), tight_layout=True, squeeze=False)
+    return fig, axs.flatten()
