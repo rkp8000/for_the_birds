@@ -10,3 +10,13 @@ class Generic(object):
         
         for k, v in kwargs.items():
             self.__dict__[k] = v
+
+
+def c_tile(x, n):
+    """Create tiled matrix where each of n cols is x."""
+    return np.tile(x.flatten()[:, None], (1, n))
+
+
+def r_tile(x, n):
+    """Create tiled matrix where each of n rows is x."""
+    return np.tile(x.flatten()[None, :], (n, 1))
