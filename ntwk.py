@@ -5,12 +5,147 @@ from copy import deepcopy as copy
 import numpy as np
 from scipy.sparse import csc_matrix
 
-from aux import Generic
+from aux import Generic, c_tile, r_tile
 
 cc = np.concatenate
 
 
-# Network classes
+# Binary spiking network
+class BinarySTDPNtwk(object):
+    """Network of binary spiking neurons."""
+    
+    def __init__(self, cxn, w_0, tht_s, t_tht, a_tht, n_max, t_stdp, d_w_s, w_min, w_max):
+        self.cxn = cxn
+        self.w_0 = w_0
+        self.tht_s = tht_s
+        self.t_tht = t_tht
+        self.a_tht = a_tht
+        self.n_max = n_max
+        self.t_stdp = t_stdp
+        self.d_w_s = d_w_s
+        self.w_min = w_min
+        self.w_max = w_max
+        
+        self.n = w_0.shape[0]
+        
+        self.t_stdp_ub = t_stdp[-1] + 1
+        self.t_stdp_lb = t_stdp[0]
+        
+        self.d_w_s_p = d_w_s[t_stdp >= 0]
+        self.d_w_s_m = d_w_s[t_stdp < 0]
+    
+    def run(self, i_ext, t_save_w=None, bins_p_w=None, change_w=True):
+        """
+        Run network.
+        
+        Set 'change_w' to True to calc and apply stdp, to False to calc but not apply stdp,
+        or to None to neither calc nor apply stdp.
+        """
+        cxn = self.cxn
+        w_0 = self.w_0
+        tht_s = self.tht_s
+        t_tht = self.t_tht
+        a_tht = self.a_tht
+        n_max = self.n_max
+        t_stdp = self.t_stdp
+        d_w_s = self.d_w_s
+        w_min = self.w_min
+        w_max = self.w_max
+        
+        n = self.n
+        
+        t_stdp_ub = self.t_stdp_ub
+        t_stdp_lb = self.t_stdp_lb
+        
+        d_w_s_p = self.d_w_s_p
+        d_w_s_m = self.d_w_s_m
+        
+        n_t = len(i_ext)
+        
+        if t_save_w is None:
+            t_save_w = [1, n_t-1]
+        
+        vs = np.zeros((n_t, n))
+        thts = tht_s * np.ones((n_t, n))
+        spks = np.zeros((n_t, n), dtype=bool)
+        
+        w = w_0.copy()
+        d_w_s = np.zeros((n, n))
+        
+        if bins_p_w is not None:
+            cts_w = np.zeros((n_t, len(bins_p_w)-1), dtype=int)
+        else:
+            cts_w = None
+        
+        ws = {}
+        
+        for t in range(1, n_t):
+
+            # get inputs
+            ## recurrent
+            i_rcr = w.dot(spks[t-1, :])
+
+            ## total
+            v = i_ext[t] + i_rcr
+
+            # thresholds
+            tht = thts[t-1, :] - (1/t_tht)*(thts[t-1, :] - tht_s) + a_tht*spks[t-1, :]
+
+            # mask n_max highest vs
+            v_max = np.zeros(n, dtype=bool)
+            v_max[np.argsort(v)[-n_max:]] = True
+
+            # get spks
+            spk = (v >= tht) & v_max  # spk if v above threshold and included in max vs
+
+            # save dynamic vars
+            vs[t, :] = v.copy()
+            thts[t, :] = tht.copy()
+            spks[t, :] = spk.copy()
+            
+            # calc w update
+            if change_w is not None:
+                # increase w where post spikes occurred
+                mask_p = cxn & c_tile(spk, n)  # cxns w/ post spks
+
+                if t < t_stdp_ub-1:
+                    h_stdp = d_w_s_p[:t+1][::-1]  # pos-lobe STDP filter to conv w spks
+                    d_w_s_p_ = r_tile(np.dot(h_stdp, spks[:t+1, :]), n)  # \Delta w^*_+
+                else:
+                    h_stdp = d_w_s_p[::-1]
+                    d_w_s_p_ = r_tile(np.dot(h_stdp, spks[t-t_stdp_ub+1:t+1, :]), n)
+
+                # decrease w where pre spikes occurred
+                mask_m = cxn * r_tile(spk, n)  # cxns w/ pre spks
+
+                if t < -(t_stdp_lb + 1):
+                    h_stdp = d_w_s_m[len(d_w_s_m)-t:]  # minus-lobe STDP filter to conv w spks
+                    d_w_s_m_ = c_tile(np.dot(h_stdp, spks[:t, :]), n)  # \Delta w^*_-
+                else:
+                    h_stdp = d_w_s_m
+                    d_w_s_m_ = c_tile(np.dot(h_stdp, spks[t+t_stdp_lb+1:t, :]), n)
+                    
+                d_w_s[mask_p] += d_w_s_p_[mask_p]
+                d_w_s[mask_m] += d_w_s_m_[mask_m]
+
+            # apply w update if desired
+            if change_w:
+                w[mask_p] += (w_max - w[mask_p]) * d_w_s_p_[mask_p]  # scale ∆w^*_+ by dist to w_max
+                w[mask_m] += (w[mask_m] - w_min) * d_w_s_m_[mask_m]  # scale ∆w^*_- by dist from w_min
+                
+            # save weights
+
+            ## [distribution]
+            if bins_p_w is not None:
+                cts_w[t, :] = np.histogram(w[cxn], bins_p_w)[0]
+
+            ## [full matrix]
+            if t in t_save_w:
+                ws[t] = w.copy()
+
+        return Generic(t=np.arange(n_t), vs=vs, spks=spks, thts=thts, d_w_s=d_w_s, cts_w=cts_w, ws=ws)
+
+# Current-based LIF network
 class LIFNtwkI(object):
     """Network of leaky integrate-and-fire neurons with *current-based* synapses."""
     
@@ -131,6 +266,7 @@ class LIFNtwkI(object):
         return Generic(dt=dt, t=t, vs=vs, spks=spks, spks_t=spks_t, spks_c=spks_c, i_ext=i_ext, ntwk=self)
 
     
+# Conductance-based LIF network
 class LIFNtwkG(object):
     """Network of leaky integrate-and-fire neurons with *conductance-based* synapses."""
     
