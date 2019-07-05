@@ -118,12 +118,12 @@ class BinarySTDPNtwk(object):
                 # decrease w where pre spikes occurred
                 mask_m = cxn * r_tile(spk, n)  # cxns w/ pre spks
 
-                if t < -(t_stdp_lb + 1):
+                if t < -(t_stdp_lb):
                     h_stdp = d_w_s_m[len(d_w_s_m)-t:]  # minus-lobe STDP filter to conv w spks
                     d_w_s_m_ = c_tile(np.dot(h_stdp, spks[:t, :]), n)  # \Delta w^*_-
                 else:
                     h_stdp = d_w_s_m
-                    d_w_s_m_ = c_tile(np.dot(h_stdp, spks[t+t_stdp_lb+1:t, :]), n)
+                    d_w_s_m_ = c_tile(np.dot(h_stdp, spks[t+t_stdp_lb:t, :]), n)
                     
                 d_w_s[mask_p] += d_w_s_p_[mask_p]
                 d_w_s[mask_m] += d_w_s_m_[mask_m]
