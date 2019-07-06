@@ -34,7 +34,7 @@ class BinarySTDPNtwk(object):
         self.d_w_s_p = d_w_s[t_stdp >= 0]
         self.d_w_s_m = d_w_s[t_stdp < 0]
     
-    def run(self, i_ext, t_save_w=None, bins_p_w=None, change_w=True):
+    def run(self, i_ext, t_save_w=None, f_w_save=None, change_w=True):
         """
         Run network.
         
@@ -72,10 +72,7 @@ class BinarySTDPNtwk(object):
         w = w_0.copy()
         d_w_s = np.zeros((n, n))
         
-        if bins_p_w is not None:
-            cts_w = np.zeros((n_t, len(bins_p_w)-1), dtype=int)
-        else:
-            cts_w = None
+        f_ws = [] if f_w_save is not None else None
         
         ws = {}
         
@@ -136,14 +133,14 @@ class BinarySTDPNtwk(object):
             # save weights
 
             ## [distribution]
-            if bins_p_w is not None:
-                cts_w[t, :] = np.histogram(w[cxn], bins_p_w)[0]
+            if f_w_save is not None:
+                f_ws.append(f_w_save(w))
 
             ## [full matrix]
             if t in t_save_w:
                 ws[t] = w.copy()
 
-        return Generic(t=np.arange(n_t), vs=vs, spks=spks, thts=thts, d_w_s=d_w_s, cts_w=cts_w, ws=ws)
+        return Generic(t=np.arange(n_t), vs=vs, spks=spks, thts=thts, d_w_s=d_w_s, f_ws=f_ws, ws=ws)
 
 # Current-based LIF network
 class LIFNtwkI(object):
