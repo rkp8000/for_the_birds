@@ -406,9 +406,14 @@ class LIFNtwkG(object):
 
 # Adaptive integrate-and-fire network (current-based)
 class ALIFNtwkI(object):
-    """Network of *adaptive* leaky integrate-and-fire neurons with *current-based* synapses."""
+    """
+    Network of *adaptive* leaky integrate-and-fire neurons with *current-based* synapses.
     
-    def __init__(self, c_m, g_l, e_l, v_th, v_r, t_r, t_a, b, w_r, w_u, sparse=True):
+    Based on Brette and Gerstner J, Neurophysiol 2005.
+    (https://www.ncbi.nlm.nih.gov/pubmed/16014787)
+    """
+    
+    def __init__(self, c_m, g_l, e_l, v_th, v_r, t_r, t_a, b_v, b_s, w_r, w_u, sparse=True):
         # ntwk size
         n = w_r.shape[0]
         
@@ -428,7 +433,8 @@ class ALIFNtwkI(object):
         self.v_r = v_r
         self.t_r = t_r
         self.t_a = t_a
-        self.b = b
+        self.b_v = b_v
+        self.b_s = b_s
         
         if sparse:  # sparsify connectivity if desired
             self.w_r = csc_matrix(w_r)
@@ -456,7 +462,8 @@ class ALIFNtwkI(object):
         t_r = self.t_r
         t_r_int = np.round(t_r/dt).astype(int)
         t_a = self.t_a
-        b = self.b
+        b_v = self.b_v
+        b_s = self.b_s
         w_r = self.w_r
         w_u = self.w_u
         
@@ -519,7 +526,7 @@ class ALIFNtwkI(object):
             rp_ctr[rp_ctr > 0] -= 1
             
             # update adaptation variable
-            a += (dt/t_a)*(-a + b*(vs[t_ctr, :] - e_l))
+            a += (dt/t_a)*(-a + b_v*(vs[t_ctr, :] - e_l)) + b_s*spks[t_ctr]
         
         t = dt*np.arange(n_t, dtype=float)
         
