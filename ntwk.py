@@ -324,9 +324,6 @@ class LIFNtwkG(object):
         w_r = self.w_r
         w_u = self.w_u
         
-        if spks_u is not None:
-            assert len(i_ext) == len(spks_u)
-        
         # make data storage arrays
         gs = {syn: np.nan * np.zeros((n_t, n)) for syn in syns}
         vs = np.nan * np.zeros((n_t, n))
@@ -353,14 +350,14 @@ class LIFNtwkG(object):
                     g = gs[syn][t_ctr-1, :]
                     # get weighted spike inputs
                     ## recurrent
-                    spks_w = w_r[syn].dot(spks[t_ctr-1, :])
+                    inp = w_r[syn].dot(spks[t_ctr-1, :])
                     ## upstream
                     if spks_u is not None:
                         if syn in w_u:
-                            spks_w += w_u[syn].dot(spks_u[t_ctr-1, :])
+                            inp += w_u[syn].dot(spks_u[t_ctr-1, :])
                     
                     # update conductances from weighted spks
-                    gs[syn][t_ctr, :] = g + (dt/t_s[syn])*(-gs[syn][t_ctr-1, :]) + spks_w
+                    gs[syn][t_ctr, :] = g + (dt/t_s[syn])*(-gs[syn][t_ctr-1, :]) + inp
             
             # update voltages
             if t_ctr in clamp.v:  # check for clamped voltages
@@ -376,24 +373,21 @@ class LIFNtwkG(object):
                 vs[t_ctr, :] = v + (dt/c_m)*i_total
                 
                 # clamp v for cells still in refrac period
-                vs[t_ctr, rp_ctr > 0] = self.v_r[rp_ctr > 0]
+                vs[t_ctr, rp_ctr > 0] = v_r[rp_ctr > 0]
             
             # update spks
             if t_ctr in clamp.spk:  # check for clamped spikes
                 spks[t_ctr, :] = clamp.spk[t_ctr]
             else:  # check for threshold crossings
-                spks[t_ctr, :] = vs[t_ctr, :] >= self.v_th
+                spks[t_ctr, :] = vs[t_ctr, :] >= v_th
                 
             # reset v and update refrac periods for nrns that spiked
-            vs[t_ctr, spks[t_ctr]] = self.v_r[spks[t_ctr]]
-            rp_ctr[spks[t_ctr]] = t_r_int[spks[t_ctr]] + 1
+            vs[t_ctr, spks[t_ctr, :]] = v_r[spks[t_ctr, :]]
+            rp_ctr[spks[t_ctr, :]] = t_r_int[spks[t_ctr, :]] + 1
             
             # decrement refrac periods
             rp_ctr[rp_ctr > 0] -= 1
             
-            # update aux variables and weights
-            # NOT IMPLEMENTED YET
-        
         t = dt*np.arange(n_t, dtype=float)
         
         # convert spks to spk times and cell idxs (for easy access l8r)
