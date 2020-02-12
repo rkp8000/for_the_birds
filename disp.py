@@ -1,4 +1,5 @@
 from copy import deepcopy
+from matplotlib import cm
 import matplotlib.pyplot as plt
 import numpy as np
 import warnings
@@ -59,6 +60,12 @@ def set_color(ax, color, box=False):
     ax.xaxis.label.set_color(color)
     ax.yaxis.label.set_color(color)
     
+    
+def get_spaced_colors(cmap, n, step):
+    """step from 0 to 1"""
+    cmap = cm.get_cmap(cmap)
+    return cmap((np.arange(n, dtype=float)*step)%1)
+
     
 def fast_fig(n_ax, ax_size, fig_w=15):
     """Quickly make figure and axes objects from number of axes and ax size (h, w)."""
