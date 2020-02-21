@@ -66,6 +66,11 @@ def get_spaced_colors(cmap, n, step):
     cmap = cm.get_cmap(cmap)
     return cmap((np.arange(n, dtype=float)*step)%1)
 
+
+def get_ordered_colors(cmap, n, lb=0, ub=1):
+    cmap = cm.get_cmap(cmap)
+    return cmap(np.linspace(lb, ub, n))
+
     
 def fast_fig(n_ax, ax_size, fig_w=15):
     """Quickly make figure and axes objects from number of axes and ax size (h, w)."""
