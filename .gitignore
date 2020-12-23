@@ -6,3 +6,6 @@
 !*.ipynb
 !*.py
 
+!ms/*.svg
+!ms/*.pdf
+
