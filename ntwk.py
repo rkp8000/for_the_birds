@@ -5,7 +5,7 @@ from copy import deepcopy as copy
 import numpy as np
 from scipy.sparse import csc_matrix
 
-from aux import Generic, c_tile, r_tile
+from aux import Generic
 
 cc = np.concatenate
 

@@ -28,7 +28,31 @@ def set_font_size(ax, font_size, legend_font_size=None):
             for text in ax.get_legend().get_texts():
                 text.set_fontsize(legend_font_size)
             
-            
+
+def set_plot(ax, x_lim=None, y_lim=None, x_ticks=None, y_ticks=None, x_tick_labels=None, y_tick_labels=None,
+        x_label=None, y_label= None, title=None, font_size=12):
+    if x_lim is not None:
+        ax.set_xlim(x_lim)
+    if y_lim is not None:
+        ax.set_ylim(y_lim)
+    if x_ticks is not None:
+        ax.set_xticks(x_ticks)
+    if y_ticks is not None:
+        ax.set_yticks(y_ticks)
+    if x_tick_labels is not None:
+        ax.set_xticklabels(x_tick_labels)
+    if y_tick_labels is not None:
+        ax.set_yticklabels(y_tick_labels)
+    if x_label is not None:
+        ax.set_xlabel(x_label)
+    if y_label is not None:
+        ax.set_ylabel(y_label)
+    if title is not None:
+        ax.set_title(title)
+    if font_size is not None:
+        set_font_size(ax, font_size)
+        
+        
 def set_n_x_ticks(ax, n, x_min=None, x_max=None):
     x_ticks = ax.get_xticks()
     
