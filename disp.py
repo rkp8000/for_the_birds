@@ -6,6 +6,7 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
+colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
 def set_font_size(ax, font_size, legend_font_size=None):
     """Set font_size of all axis text objects to specified value."""
