@@ -2,6 +2,7 @@ from copy import deepcopy
 from matplotlib import cm
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy import stats
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 warnings.filterwarnings("ignore", category=RuntimeWarning)
@@ -52,6 +53,21 @@ def set_plot(ax, x_lim=None, y_lim=None, x_ticks=None, y_ticks=None, x_tick_labe
         ax.set_title(title)
     if font_size is not None:
         set_font_size(ax, font_size)
+        
+        
+def get_line(x, y):
+    if not isinstance(x, np.ndarray):
+        x = np.array(x)
+    if not isinstance(y, np.ndarray):
+        y = np.array(y)
+        
+    nnan_mask = (~np.isnan(x)) & (~np.isnan(y))
+    slp, icpt, r, p, stderr = stats.linregress(x[nnan_mask], y[nnan_mask])
+    
+    x_ln = np.array([np.nanmin(x), np.nanmax(x)])
+    y_ln = slp*x_ln + icpt
+    
+    return x_ln, y_ln, (slp, icpt, r, p, stderr)
         
         
 def set_n_x_ticks(ax, n, x_min=None, x_max=None):
